@@ -163,6 +163,7 @@ std::shared_ptr<DrawDecode> Driver::decodeDraw(const QueueState& queue, const Su
     Graphics::NormalizeUnusedViewportDepth(product->state, product->pixel);
     Graphics::ApplyDepthRemap(context, product->state);
     product->pixel.targetExportPacking = Graphics::ExportPackings(product->state);
+    product->pixel.targetOutputType = Graphics::ExportOutputTypes(product->state);
     product->pixel.dualSourceBlend = product->state.dualSourceBlend;
     product->pixel.reversedBlend = product->state.reversedBlend;
     product->pixel.alphaToCoverage = product->state.alphaToCoverage;

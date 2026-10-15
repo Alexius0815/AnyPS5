@@ -460,7 +460,7 @@ int main() {
         const auto replay40 = serializer.Deserialize(EncodeBase64(version40));
         Require(!replay40.request.target.float32DenormPreserve && replay40.request.target.float32FlushToZero == !preserve);
         auto future = bytes;
-        future[4] = 43u;
+        future[4] = 44u;
         bool futureRejected = false;
         try {
             static_cast<void>(serializer.Deserialize(EncodeBase64(future)));
@@ -479,6 +479,34 @@ int main() {
     }
 
     ShaderRecompiler::ShaderPixelStageInfo pixel{};
+    for (const auto type : {ShaderRecompiler::ColorOutputType::Float, ShaderRecompiler::ColorOutputType::Uint, ShaderRecompiler::ColorOutputType::Sint}) {
+        auto typed = request;
+        typed.context.pixel = pixel;
+        typed.context.pixel->targetOutputType.fill(type);
+        const auto encoded = serializer.Serialize(typed);
+        const auto bytes = DecodeBase64(encoded);
+        Require(bytes[4] == 43u && serializer.Deserialize(encoded).request.context.pixel->targetOutputType == typed.context.pixel->targetOutputType);
+        for (std::size_t size = 0; size < 8; ++size) {
+            auto truncated = bytes;
+            truncated.resize(bytes.size() - 8u + size);
+            bool rejected = false;
+            try {
+                static_cast<void>(serializer.Deserialize(EncodeBase64(truncated)));
+            } catch (const std::runtime_error& error) {
+                rejected = std::string_view(error.what()) == "RequestSerializer: truncated data";
+            }
+            Require(rejected);
+        }
+        auto invalid = bytes;
+        invalid.back() = 4u;
+        bool rejected = false;
+        try {
+            static_cast<void>(serializer.Deserialize(EncodeBase64(invalid)));
+        } catch (const std::runtime_error& error) {
+            rejected = std::string_view(error.what()) == "RequestSerializer: invalid color output type";
+        }
+        Require(rejected);
+    }
     pixel.iteratesSamples = true;
     pixel.positionLocation = ShaderRecompiler::PixelPositionLocation::UpperLeft;
     pixel.sampleLocations = {0xa5u, 0x5au, 0xc3u, 0x3cu};
