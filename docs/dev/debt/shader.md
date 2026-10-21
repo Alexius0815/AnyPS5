@@ -28,6 +28,8 @@
 
 ### Functional
 
+- [Mesh-path points run as compute](../../../core/shader/recompiler/Recompiler.cpp) (AGC driver) - a mesh-path draw with point output (`outputPrimitiveSize` 1) that runs through the compute fallback (a device without `VK_EXT_mesh_shader`, or more layers than `maxMeshOutputLayers`) throws: the vertex record carries no point size and the readback draws triangle or line lists only. The native mesh stage draws such points
+
 - [Pixel interpolators past `SPI_PS_IN_CONTROL.NUM_INTERP`](../../../core/shader/recompiler/Optimization/src/ShaderInfoCollector.cpp) (shader recompiler) - when the IR reads an attribute at or past the guest interpolator count, the missing `SPI_PS_INPUT_CNTL` slots are filled as DEFAULT (`OFFSET` 0x20, constant 0/1) before info collection, and SPIR-V emission of `GetInterpolationParameter` for a missing binding returns the same defaults instead of throwing, matching Mesa's treatment of a PS input with no VS output. Component and mode bounds still throw. A retail title prepares a pixel shader with `NUM_INTERP` 0 while it still issues `v_interp` on attribute 0 (`undefined attribute` after the collector fill alone). Console behaviour for that pairing is not measured.
 - [Windows cache housekeeping](../../../core/shader/recompiler/ShaderDiskCache.cpp): eviction of old versions and temporary files is skipped for `\\?\` and `\\.\` cache roots because the supported WinLibs directory iterator can enumerate the process working directory for long prefixed paths. The active version's `last-used` stamp update still runs; it fails for long `\\.\` aliases with the supported toolchain. Ordinary Windows directory enumeration remains subject to MAX_PATH.
 
