@@ -444,7 +444,9 @@ int main() {
                         pointed.context.vertex->pointSizeMin = 1.0f;
                         pointed.context.vertex->pointSizeMax = 8.0f;
                         auto version44 = DecodeBase64(serializer.Serialize(pointed));
-                        Require(version44.size() > 15u && version44[4] == 44u);
+                        Require(version44.size() > 16u && version44[4] == 45u);
+                        version44.pop_back();
+                        version44[4] = 44u;
                         auto version43 = version44;
                         version43.pop_back();
                         version43[4] = 43u;
@@ -569,7 +571,6 @@ int main() {
         auto version35 = DecodeBase64(serializer.Serialize(request));
         version35.pop_back();
         version35.pop_back();
-        version35.pop_back();
         const auto stencilOperationValue = std::search(version35.begin(), version35.end(), pixel.sampleLocations.begin(), pixel.sampleLocations.begin() + 4) + pixel.sampleLocations.size();
         const auto pixelTail = static_cast<std::ptrdiff_t>(1u + sizeof(pixel.sampleOrder));
         Require(version35.end() - stencilOperationValue > pixelTail && std::all_of(stencilOperationValue, stencilOperationValue + pixelTail, [](std::uint8_t value) { return value == 0u; }));
@@ -595,6 +596,7 @@ int main() {
     auto pointBytes = DecodeBase64(pointEncoded);
     pointBytes.pop_back();
     pointBytes.pop_back();
+    pointBytes.pop_back();
     bool pointRejected = false;
     try {
         static_cast<void>(serializer.Deserialize(EncodeBase64(pointBytes)));
@@ -614,7 +616,7 @@ int main() {
         for (const std::uint8_t version : {32u, 33u, 34u, 35u, 36u, 37u, 38u}) {
             pointRequest.target.spannedWaves = spanned;
             auto legacy = DecodeBase64(serializer.Serialize(pointRequest));
-            legacy.resize(legacy.size() - (version >= 36u ? 15u : version >= 35u ? 16u : 21u));
+            legacy.resize(legacy.size() - (version >= 36u ? 16u : version >= 35u ? 17u : 22u));
             legacy[4] = version;
             const auto replayLegacy = serializer.Deserialize(EncodeBase64(legacy));
             Require(replayLegacy.request.target.spannedWaves == spanned);
@@ -626,7 +628,7 @@ int main() {
             Require(!replayLegacy.request.context.vertex->pointList && replayLegacy.request.context.vertex->pointSize == 1.0f);
             Require(replayLegacy.request.context.vertex->pointSizeMin == 0.0f && replayLegacy.request.context.vertex->pointSizeMax == 0.0f);
             const auto upgradedLegacy = DecodeBase64(serializer.Serialize(replayLegacy.request));
-            Require(upgradedLegacy[4] == 44u && upgradedLegacy.size() == legacy.size() + (version >= 36u ? 15u : version >= 35u ? 16u : 21u));
+            Require(upgradedLegacy[4] == 45u && upgradedLegacy.size() == legacy.size() + (version >= 36u ? 16u : version >= 35u ? 17u : 22u));
         }
     }
 
@@ -635,14 +637,14 @@ int main() {
     const auto sampledPoint = serializer.Deserialize(serializer.Serialize(pointRequest));
     Require(sampledPoint.request.context.vertex->pointList && sampledPoint.request.context.pixel->sampleOrder == pixel.sampleOrder);
     auto legacy42 = DecodeBase64(serializer.Serialize(pointRequest));
-    legacy42.resize(legacy42.size() - 14u);
+    legacy42.resize(legacy42.size() - 15u);
     legacy42[4] = 42u;
     const auto replay42 = serializer.Deserialize(EncodeBase64(legacy42));
     Require(replay42.request.context.pixel->sampleOrder == pixel.sampleOrder && !replay42.request.context.vertex->pointList && replay42.request.context.vertex->pointSize == 1.0f);
     pixel.sampleOrder = {};
     pointRequest.context.pixel = pixel;
     auto legacy34 = DecodeBase64(serializer.Serialize(pointRequest));
-    legacy34.resize(legacy34.size() - 21u);
+    legacy34.resize(legacy34.size() - 22u);
     const auto stencil34 = std::search(legacy34.begin(), legacy34.end(), pixel.sampleLocations.begin(), pixel.sampleLocations.begin() + 4) + pixel.sampleLocations.size();
     const auto legacyPixelTail = static_cast<std::ptrdiff_t>(1u + sizeof(pixel.sampleOrder));
     Require(legacy34.end() - stencil34 > legacyPixelTail && std::all_of(stencil34, stencil34 + legacyPixelTail, [](std::uint8_t value) { return value == 0u; }));
@@ -655,8 +657,9 @@ int main() {
     for (const bool fused : {false, true}) {
         request.target.fusedExactArithmetic = fused;
         auto bytes = DecodeBase64(serializer.Serialize(request));
-        Require(serializer.Deserialize(EncodeBase64(bytes)).request.target.fusedExactArithmetic == fused && bytes.back() == (fused ? 1u : 0u));
+        Require(serializer.Deserialize(EncodeBase64(bytes)).request.target.fusedExactArithmetic == fused && bytes[bytes.size() - 2u] == (fused ? 1u : 0u));
         bytes[4] = 43u;
+        bytes.pop_back();
         bytes.pop_back();
         Require(!serializer.Deserialize(EncodeBase64(bytes)).request.target.fusedExactArithmetic);
     }
